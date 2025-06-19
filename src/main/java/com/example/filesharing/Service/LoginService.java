@@ -6,15 +6,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 @Service
@@ -22,46 +18,54 @@ import java.util.Optional;
 public class LoginService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
 
     public boolean loginOrRegister(String username, String password, HttpServletRequest request) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
 
-        Optional<User> existingUser = userRepository.findByUsername(username);
+        String hashedPassword = hashPassword(password);
 
-        if (existingUser.isEmpty()) {
+        if (userOpt.isEmpty()) {
+            // Регистрация нового пользователя
             User newUser = User.builder()
                     .username(username)
-                    .password(passwordEncoder.encode(password))
+                    .password(hashedPassword)
                     .build();
             userRepository.save(newUser);
-
-            existingUser = userRepository.findByUsername(username);
-            if (existingUser.isEmpty()) {
+            userOpt = userRepository.findByUsername(username);
+            if (userOpt.isEmpty()) {
                 throw new IllegalStateException("Не удалось создать пользователя");
+            }
+        } else {
+            // Проверка пароля
+            User user = userOpt.get();
+            if (!user.getPassword().equals(hashedPassword)) {
+                return false; // Неверный пароль
             }
         }
 
-        try {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    username,
-                    password
-            );
-            Authentication authentication = authenticationManager.authenticate(authToken);
+        // Сохраняем логин и id пользователя в сессию
+        User user = userOpt.get();
+        HttpSession session = request.getSession(true);
+        session.setAttribute("username", user.getUsername());
+        session.setAttribute("user_id", user.getId());
 
-            // Устанавливаем аутентификацию в контекст
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // ВАЖНО: сохраняем в сессии!
-            HttpSession session = request.getSession(true);
-            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                    SecurityContextHolder.getContext());
-
-            return true;
-
-        } catch (AuthenticationException e) {
-            return false;
-        }
+        return true;
     }
 
+    private String hashPassword(String password) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            digest.reset();
+            byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Ошибка при хэшировании пароля", e);
+        }
+    }
 }
+
+
