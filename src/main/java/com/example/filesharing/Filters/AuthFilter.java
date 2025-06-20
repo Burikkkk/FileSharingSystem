@@ -7,6 +7,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -31,8 +32,11 @@ public class AuthFilter implements Filter {
         String path = req.getRequestURI();
 
         boolean isPublic = PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+        HttpSession session = req.getSession(false);
+        Object user = session != null ? session.getAttribute("user") : null;
 
-        if (isPublic || req.getSession(false) != null && req.getSession(false).getAttribute("username") != null) {
+        if (isPublic || user != null)
+        {
             chain.doFilter(request, response);
         } else {
             res.sendRedirect("/login");

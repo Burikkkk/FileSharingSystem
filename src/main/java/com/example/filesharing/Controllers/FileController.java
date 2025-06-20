@@ -18,10 +18,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class FileController {
@@ -35,24 +41,44 @@ public class FileController {
                              RedirectAttributes redirectAttributes) throws IOException {
 
         User user = (User) session.getAttribute("user");
-        if (user == null) return "redirect:/login";
+        if (user == null) {
+            log.warn("Попытка загрузки файла без авторизации");
+            return "redirect:/login";
+        }
 
-        UUID fileId = UUID.randomUUID();
-        String key = "uploads/" + fileId;
+        String safeFilename = Paths.get(Objects.requireNonNull(file.getOriginalFilename())).getFileName().toString();
+        log.info("Пользователь [{}] начал загрузку файла: {}", user.getUsername(), safeFilename);
+
         String token = UUID.randomUUID().toString();
+        String key = "uploads/" + LocalDate.now() + "/" + UUID.randomUUID();
 
-        fileControlService.uploadFile(key, file.getInputStream(), file.getSize(), file.getContentType());
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+
+        try (InputStream inputStream = file.getInputStream()) {
+            fileControlService.uploadFile(key, inputStream, file.getSize(), contentType);
+            log.info("Файл [{}] успешно загружен в хранилище с ключом: {}", safeFilename, key);
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке файла в хранилище", e);
+            redirectAttributes.addFlashAttribute("error", "Ошибка загрузки файла");
+            return "redirect:/welcome";
+        }
 
         FileData fileData = FileData.builder()
-                .id(fileId)
-                .filename(file.getOriginalFilename())
+                .filename(safeFilename)
                 .s3Key(key)
                 .token(token)
                 .downloaded(false)
                 .owner(user)
                 .build();
 
-        fileRepository.save(fileData);
+        try {
+            fileRepository.save(fileData);
+            log.info("Информация о файле сохранена в БД: fileId={}, token={}", fileData.getId(), token);
+        } catch (Exception e) {
+            log.error("Ошибка при сохранении файла в БД", e);
+            redirectAttributes.addFlashAttribute("error", "Ошибка сохранения файла");
+            return "redirect:/welcome";
+        }
 
         redirectAttributes.addFlashAttribute("link", "/download?token=" + token);
         return "redirect:/welcome";
@@ -62,25 +88,49 @@ public class FileController {
     public void downloadFile(@RequestParam String token,
                              HttpServletResponse response) throws IOException {
 
+        log.info("Попытка загрузки файла с токеном: {}", token);
+
         FileData fileData = fileRepository.findByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.warn("Файл с токеном {} не найден", token);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND);
+                });
 
         if (fileData.isDownloaded()) {
+            log.warn("Файл с токеном {} уже был скачан ранее", token);
             throw new ResponseStatusException(HttpStatus.GONE, "Файл уже был скачан");
         }
 
         try (InputStream s3InputStream = fileControlService.downloadFile(fileData.getS3Key())) {
+
+            log.info("Файл [{}] найден. Начинается передача клиенту", fileData.getFilename());
 
             response.setContentType("application/octet-stream");
             response.setHeader("Content-Disposition", "attachment; filename=\"" + fileData.getFilename() + "\"");
 
             s3InputStream.transferTo(response.getOutputStream());
             response.flushBuffer();
+
+            log.info("Файл [{}] успешно отправлен клиенту", fileData.getFilename());
+
+        } catch (Exception e) {
+            log.error("Ошибка при скачивании файла из хранилища", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ошибка скачивания файла");
         }
 
-        fileControlService.deleteFile(fileData.getS3Key());
+        try {
+            fileControlService.deleteFile(fileData.getS3Key());
+            log.info("Файл {} удалён из хранилища", fileData.getS3Key());
+        } catch (Exception e) {
+            log.error("Ошибка при удалении файла из хранилища", e);
+        }
 
         fileData.setDownloaded(true);
-        fileRepository.save(fileData);
+        try {
+            fileRepository.save(fileData);
+            log.info("Флаг скачивания установлен для файла {}", fileData.getId());
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении флага скачивания в БД", e);
+        }
     }
 }

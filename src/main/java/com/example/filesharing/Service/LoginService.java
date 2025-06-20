@@ -46,8 +46,9 @@ public class LoginService {
         // Сохраняем логин и id пользователя в сессию
         User user = userOpt.get();
         HttpSession session = request.getSession(true);
-        session.setAttribute("username", user.getUsername());
-        session.setAttribute("user_id", user.getId());
+        session.setAttribute("user", user);
+        //session.setAttribute("username", user.getUsername());
+        //session.setAttribute("user_id", user.getId());
 
         return true;
     }

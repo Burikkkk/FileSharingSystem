@@ -1,5 +1,6 @@
 package com.example.filesharing.Controllers;
 
+import com.example.filesharing.Entities.User;
 import com.example.filesharing.Service.LoginService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,12 +44,12 @@ public class LoginController {
 
         return "redirect:/welcome";
     }
-
     @GetMapping("/welcome")
     public String welcome(HttpSession session, Model model) {
-        String username = (String) session.getAttribute("username");
-        if (username == null) return "redirect:/login";
-        model.addAttribute("username", username);
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        model.addAttribute("username", user.getUsername());
         return "welcome";
     }
 
