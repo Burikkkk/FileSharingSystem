@@ -139,6 +139,6 @@ public class FileController {
             log.error("Ошибка при обновлении флага скачивания в БД", e);
         }
 
-        return null; // файл уже отправлен, ничего не возвращаем
+        return null;
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <title>Welcome!</title>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/css/welcome.css">
+    <link rel="stylesheet" href="/welcome.css">
     <script src="/welcome.js" defer></script>
 </head>
 <body>
@@ -15,28 +15,27 @@
     </form>
 </div>
 
-<div class="section">
-    <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+<div class="container">
+    <form th:action="@{/upload}" method="post" enctype="multipart/form-data" class="upload-form">
         <input type="file" name="file" required />
-        <button type="submit">Upload File</button>
+        <button type="submit">📤 Upload File</button>
     </form>
-</div>
-<!-- Показать сообщение об ошибке -->
-<div th:if="${error}" style="color: red; margin-top: 20px;">
-    <strong th:text="${error}"></strong>
-</div>
 
-<div class="section" th:if="${link}">
-    <p>Download your file here:
-        <a id="downloadLink" th:href="${link}" th:text="${link}" target="_blank"></a>
-    </p>
-    <button onclick="copyToClipboard()">Скопировать ссылку</button>
-</div>
+    <div th:if="${error}" class="error-message">
+        <strong th:text="${error}"></strong>
+    </div>
 
-<div class="section">
-    <label for="manualLink">Вставьте ссылку для скачивания:</label><br>
-    <input type="text" id="manualLink" placeholder="/download?token=..." style="width: 300px;" />
-    <button onclick="downloadFromInput()">Скачать</button>
+    <div th:if="${link}" class="download-section">
+        <p>Download your file here:</p>
+        <a id="downloadLink" th:href="${link}" th:text="${link}" target="_blank" class="download-link"></a>
+        <button onclick="copyToClipboard()">📋 Copy link</button>
+    </div>
+
+    <div class="manual-download">
+        <label for="manualLink">Paste link for downloading</label><br>
+        <input type="text" id="manualLink" placeholder="/download?token=..." />
+        <button onclick="downloadFromInput()">⬇️ Download</button>
+    </div>
 </div>
 
 </body>
