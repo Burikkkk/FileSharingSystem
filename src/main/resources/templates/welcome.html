@@ -2,19 +2,41 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Welcome!</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/welcome.css">
+    <script src="/welcome.js" defer></script>
 </head>
 <body>
-<h1>Hello, <span th:text="${username}"></span>!</h1>
 
-<!-- Форма для загрузки файла -->
-<form th:action="@{/upload}" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required />
-    <button type="submit">Upload File</button>
-</form>
+<div class="top-bar">
+    <h1>Hello, <span th:text="${username}"></span>!</h1>
+    <form th:action="@{/logout}" method="post" class="logout-form">
+        <button type="submit">Logout</button>
+    </form>
+</div>
 
-<!-- Показать ссылку на скачивание, если есть -->
-<div th:if="${link}">
-    <p>Download your file here: <a th:href="${link}" th:text="${link}"></a></p>
+<div class="section">
+    <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required />
+        <button type="submit">Upload File</button>
+    </form>
+</div>
+<!-- Показать сообщение об ошибке -->
+<div th:if="${error}" style="color: red; margin-top: 20px;">
+    <strong th:text="${error}"></strong>
+</div>
+
+<div class="section" th:if="${link}">
+    <p>Download your file here:
+        <a id="downloadLink" th:href="${link}" th:text="${link}" target="_blank"></a>
+    </p>
+    <button onclick="copyToClipboard()">Скопировать ссылку</button>
+</div>
+
+<div class="section">
+    <label for="manualLink">Вставьте ссылку для скачивания:</label><br>
+    <input type="text" id="manualLink" placeholder="/download?token=..." style="width: 300px;" />
+    <button onclick="downloadFromInput()">Скачать</button>
 </div>
 
 </body>

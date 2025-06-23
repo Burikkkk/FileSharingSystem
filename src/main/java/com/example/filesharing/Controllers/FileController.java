@@ -85,20 +85,25 @@ public class FileController {
     }
 
     @GetMapping("/download")
-    public void downloadFile(@RequestParam String token,
-                             HttpServletResponse response) throws IOException {
+    public String downloadFile(@RequestParam String token,
+                               HttpServletResponse response,
+                               RedirectAttributes redirectAttributes) throws IOException {
 
         log.info("Попытка загрузки файла с токеном: {}", token);
 
         FileData fileData = fileRepository.findByToken(token)
-                .orElseThrow(() -> {
-                    log.warn("Файл с токеном {} не найден", token);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND);
-                });
+                .orElse(null);
+
+        if (fileData == null) {
+            log.warn("Файл с токеном {} не найден", token);
+            redirectAttributes.addFlashAttribute("error", "❌ Файл не найден или ссылка недействительна");
+            return "redirect:/welcome";
+        }
 
         if (fileData.isDownloaded()) {
             log.warn("Файл с токеном {} уже был скачан ранее", token);
-            throw new ResponseStatusException(HttpStatus.GONE, "Файл уже был скачан");
+            redirectAttributes.addFlashAttribute("error", "⚠️ Этот файл уже был скачан");
+            return "redirect:/welcome";
         }
 
         try (InputStream s3InputStream = fileControlService.downloadFile(fileData.getS3Key())) {
@@ -115,7 +120,8 @@ public class FileController {
 
         } catch (Exception e) {
             log.error("Ошибка при скачивании файла из хранилища", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ошибка скачивания файла");
+            redirectAttributes.addFlashAttribute("error", "❌ Ошибка при скачивании файла");
+            return "redirect:/welcome";
         }
 
         try {
@@ -132,5 +138,7 @@ public class FileController {
         } catch (Exception e) {
             log.error("Ошибка при обновлении флага скачивания в БД", e);
         }
+
+        return null; // файл уже отправлен, ничего не возвращаем
     }
 }
