@@ -53,7 +53,7 @@ public class LoginService {
         return true;
     }
 
-    private String hashPassword(String password) {
+    public String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.reset();

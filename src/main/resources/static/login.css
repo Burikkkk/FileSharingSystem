@@ -66,3 +66,10 @@ h2 {
     color: #3c763d;
     border: 1px solid #b2dfdb;
 }
+
+
+.alert-inputerr {
+    background-color: #fff6db;
+    color: #ffcc2e;
+    border: 1px solid #ded2ad;
+}

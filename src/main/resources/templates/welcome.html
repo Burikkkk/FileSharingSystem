@@ -17,17 +17,21 @@
 
 <div class="container">
     <form th:action="@{/upload}" method="post" enctype="multipart/form-data" class="upload-form">
-        <input type="file" name="file" required />
+        <input type="file" id="realFile" name="file" hidden="hidden" required />
+        <button type="button" id="customButton">Select File</button>
+        <span id="fileName">No file selected</span>
         <button type="submit">📤 Upload File</button>
     </form>
+
 
     <div th:if="${error}" class="error-message">
         <strong th:text="${error}"></strong>
     </div>
+    <div th:if="${error}" class="spacer"></div>
 
     <div th:if="${link}" class="download-section">
         <p>Download your file here:</p>
-        <a id="downloadLink" th:href="${link}" th:text="${link}" target="_blank" class="download-link"></a>
+        <a id="downloadLink" th:href="${link}" th:text="${link}" class="download-link"></a>
         <button onclick="copyToClipboard()">📋 Copy link</button>
     </div>
 

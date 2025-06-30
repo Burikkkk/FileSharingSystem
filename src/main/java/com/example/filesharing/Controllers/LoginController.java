@@ -22,10 +22,10 @@ public class LoginController {
                             @RequestParam(value = "logout", required = false) String logout,
                             Model model) {
         if (error != null) {
-            model.addAttribute("error", "❌ Неверные учетные данные");
+            model.addAttribute("error", "❌ Invalid credentials");
         }
         if (logout != null) {
-            model.addAttribute("message", "✔️ Вы вышли из системы");
+            model.addAttribute("message", "✔️ You have logged out");
         }
         return "login";
     }

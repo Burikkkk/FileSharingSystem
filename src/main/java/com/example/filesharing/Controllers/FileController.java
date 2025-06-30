@@ -59,7 +59,7 @@ public class FileController {
             log.info("Файл [{}] успешно загружен в хранилище с ключом: {}", safeFilename, key);
         } catch (Exception e) {
             log.error("Ошибка при загрузке файла в хранилище", e);
-            redirectAttributes.addFlashAttribute("error", "Ошибка загрузки файла");
+            redirectAttributes.addFlashAttribute("error", "File upload error");
             return "redirect:/welcome";
         }
 
@@ -76,7 +76,7 @@ public class FileController {
             log.info("Информация о файле сохранена в БД: fileId={}, token={}", fileData.getId(), token);
         } catch (Exception e) {
             log.error("Ошибка при сохранении файла в БД", e);
-            redirectAttributes.addFlashAttribute("error", "Ошибка сохранения файла");
+            redirectAttributes.addFlashAttribute("error", "Error saving file");
             return "redirect:/welcome";
         }
 
@@ -96,13 +96,13 @@ public class FileController {
 
         if (fileData == null) {
             log.warn("Файл с токеном {} не найден", token);
-            redirectAttributes.addFlashAttribute("error", "❌ Файл не найден или ссылка недействительна");
+            redirectAttributes.addFlashAttribute("error", "❌ File not found or link is invalid");
             return "redirect:/welcome";
         }
 
         if (fileData.isDownloaded()) {
             log.warn("Файл с токеном {} уже был скачан ранее", token);
-            redirectAttributes.addFlashAttribute("error", "⚠️ Этот файл уже был скачан");
+            redirectAttributes.addFlashAttribute("error", "⚠️ This file has already been downloaded");
             return "redirect:/welcome";
         }
 
@@ -120,7 +120,7 @@ public class FileController {
 
         } catch (Exception e) {
             log.error("Ошибка при скачивании файла из хранилища", e);
-            redirectAttributes.addFlashAttribute("error", "❌ Ошибка при скачивании файла");
+            redirectAttributes.addFlashAttribute("error", "❌ Error downloading file");
             return "redirect:/welcome";
         }
 
